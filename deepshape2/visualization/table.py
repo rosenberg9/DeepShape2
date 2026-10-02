@@ -30,17 +30,31 @@ def normalize_images_shape(images, subtitles=None):
     return images, subtitles
 
 
-def get_vmin_vmax(images, same_scale, scale_row=None):
-    """Compute vmin/vmax per column from the provided same_scale rows."""
-    cols = images.shape[1]
-    vmin = np.ones(cols) * np.inf
-    vmax = np.ones(cols) * -np.inf
+def get_vmin_vmax(images, same_scale, scale_ref=None, axis="row"):
+    """
+    Compute shared (vmin, vmax) ranges.
 
-    for col in range(cols):
-        for row in same_scale:
-            img = images[scale_row, col] if scale_row is not None else images[row, col]
-            vmin[col] = min(vmin[col], np.nanmin(img))
-            vmax[col] = max(vmax[col], np.nanmax(img))
+    axis="row": one range per column, computed over the rows in
+                ``same_scale`` (or only over row ``scale_ref`` if given).
+    axis="col": one range per row, computed over the columns in
+                ``same_scale`` (or only over column ``scale_ref`` if given).
+    """
+    if axis == "col":
+        # (rows, cols, ...) -> (cols, rows, ...), so the same logic applies
+        images = np.swapaxes(images, 0, 1)
+    elif axis != "row":
+        raise ValueError("axis must be 'row' or 'col'")
+
+    n = images.shape[1]
+    vmin = np.full(n, np.inf)
+    vmax = np.full(n, -np.inf)
+    refs = [scale_ref] if scale_ref is not None else same_scale
+
+    for i in range(n):
+        for ref in refs:
+            img = images[ref, i]
+            vmin[i] = min(vmin[i], np.nanmin(img))
+            vmax[i] = max(vmax[i], np.nanmax(img))
     return vmin, vmax
 
 
@@ -61,23 +75,44 @@ def plot(
     remove_bg=False,
     subtitles=None,
     size_fac=1,
-    scale_ranges=None,  # Optional: list of (vmin,vmax) per column
+    scale_ranges=None,  # Optional: list of (vmin, vmax) per column
     return_scales=False,
+    same_scale_cols=None,
+    scale_col=None,
+    col_scale_ranges=None,  # Optional: list of (vmin, vmax) per row
 ):
     """
-    Plot images in a grid with optional scaling per column for specific rows only.
+    Plot images in a grid with optional shared color scaling.
 
     Parameters
     ----------
     same_scale : int or list
-        Rows over which to apply same scaling.
+        Rows over which to share the scale (one range per column).
+        An int disables row scaling.
+    scale_row : int or None
+        If given, row-scaled cells take their range from this row only.
     scale_ranges : list of (vmin, vmax) or None
-        Optional predefined scale per column.
+        Optional predefined range per column for row scaling.
+    same_scale_cols : list or None
+        Columns over which to share the scale (one range per row).
+    scale_col : int or None
+        If given, column-scaled cells take their range from this column only.
+    col_scale_ranges : list of (vmin, vmax) or None
+        Optional predefined range per row for column scaling.
+
+    Notes
+    -----
+    Row and column indices refer to the grid after ``swap`` is applied.
+    If a cell is covered by both row and column scaling, row scaling
+    takes precedence.
 
     Returns
     -------
     used_scales : list
-        List of (vmin, vmax) used for each column. None if no scaling applied.
+        (vmin, vmax) per column from row scaling (None where unused).
+        If ``same_scale_cols`` is given, returns
+        ``(used_scales, used_col_scales)``, where ``used_col_scales`` holds
+        (vmin, vmax) per row from column scaling.
     """
     images, subtitles = normalize_images_shape(images, subtitles)
 
@@ -94,13 +129,21 @@ def plot(
     if titles and len(titles) != cols:
         raise ValueError("Title list should match number of columns")
 
-    # Compute vmin/vmax per column
+    # Row scaling: one (vmin, vmax) per column
     used_scales = [None] * cols
     if scale_ranges is not None:
         used_scales = scale_ranges
     elif not isinstance(same_scale, int):
-        vmin, vmax = get_vmin_vmax(images, same_scale, scale_row)
+        vmin, vmax = get_vmin_vmax(images, same_scale, scale_row, axis="row")
         used_scales = [(vmin[c], vmax[c]) for c in range(cols)]
+
+    # Column scaling: one (vmin, vmax) per row
+    used_col_scales = [None] * images.shape[0]
+    if col_scale_ranges is not None:
+        used_col_scales = col_scale_ranges
+    elif same_scale_cols is not None:
+        vmin, vmax = get_vmin_vmax(images, same_scale_cols, scale_col, axis="col")
+        used_col_scales = [(vmin[r], vmax[r]) for r in range(images.shape[0])]
 
     with rc_context(
         rc={
@@ -121,12 +164,15 @@ def plot(
             for c in range(cols):
                 ax = axs[r, c]
 
-                # Apply scaling only to rows in same_scale
-                scale = None
-                if isinstance(same_scale, int) or r not in same_scale:
-                    scale = None
-                else:
+                row_scaled = not isinstance(same_scale, int) and r in same_scale
+                col_scaled = same_scale_cols is not None and c in same_scale_cols
+
+                if row_scaled:
                     scale = used_scales[c]
+                elif col_scaled:
+                    scale = used_col_scales[r]
+                else:
+                    scale = None
 
                 if scale is not None:
                     im = ax.imshow(
@@ -174,7 +220,10 @@ def plot(
             fig.suptitle(suptitle)
 
         savefig(fname, remove_bg=remove_bg)
+
     if return_scales:
+        if same_scale_cols is not None:
+            return used_scales, used_col_scales
         return used_scales
 
 
