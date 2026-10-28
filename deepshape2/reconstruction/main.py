@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 from deepshape2.data.loaders import CenterCrop, ReconDataset
-from deepshape2.models import create_model
+from deepshape2.models.hqs_pnp import create_model
 from deepshape2.utils import chi2_dirty, get_progress_bar, get_tqdm, load_config
 
 tqdm_kwargs = get_tqdm()

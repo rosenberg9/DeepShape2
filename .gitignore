@@ -24,3 +24,7 @@ build/
 .DS_Store
 *.swp
 
+deepshape2/DS2_model_weights/
+isaac/ska_data/*.fits
+isaac/ska_data/
+*.npz

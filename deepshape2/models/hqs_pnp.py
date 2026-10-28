@@ -131,39 +131,39 @@ class HQS_PnP(nn.Module):
 # %%
 
 
-# def create_model(device, path=cfg["MODEL_DIR"] / "drunet_blended.pt", **params):
-#     """
-#     Creates HQS_PnP model with DRUNet denoiser.
+def create_model(device, path=cfg["MODEL_DIR"] / "drunet_blended.pt", **params):
+    """
+    Creates HQS_PnP model with DRUNet denoiser.
 
-#     If `path` is provided, loads checkpoint weights from there.
-#     Otherwise, download pretrained weights from DeepInv.
-#     """
-#     if path is None:
-#         print("Downloading pretrained weights from DeepInv.")
-#         denoiser = DRUNet(
-#             in_channels=1, out_channels=1, pretrained="download", device=device
-#         )
-#     else:
-#         denoiser = DRUNet(in_channels=1, out_channels=1, pretrained=None, device=device)
-#         ckpt = torch.load(path, map_location=device, weights_only=False)
-#         denoiser.load_state_dict(ckpt["best_weights"])
+    If `path` is provided, loads checkpoint weights from there.
+    Otherwise, download pretrained weights from DeepInv.
+    """
+    if path is None:
+        print("Downloading pretrained weights from DeepInv.")
+        denoiser = DRUNet(
+            in_channels=1, out_channels=1, pretrained="download", device=device
+        )
+    else:
+        denoiser = DRUNet(in_channels=1, out_channels=1, pretrained=None, device=device)
+        ckpt = torch.load(path, map_location=device, weights_only=False)
+        denoiser.load_state_dict(ckpt["best_weights"])
 
-#     # ! Load hyperparameters from config file if not provided by user
-#     default = cfg["hqs_hyperparams"]
-#     hyperparams = {**default, **params}
+    # ! Load hyperparameters from config file if not provided by user
+    default = cfg["hqs_hyperparams"]
+    hyperparams = {**default, **params}
 
-#     # unknown = hyperparams.keys() - default.keys()
-#     # if unknown:
-#     #     raise ValueError(f"Unknown hyperparameters: {unknown}")
+    # unknown = hyperparams.keys() - default.keys()
+    # if unknown:
+    #     raise ValueError(f"Unknown hyperparameters: {unknown}")
 
-#     model = HQS_PnP(
-#         niter=hyperparams["niter"],
-#         f1=hyperparams["f1"],
-#         f2=hyperparams["f2"],
-#         falpha=hyperparams["falpha"],
-#         denoiser=denoiser,
-#         SIGMA=hyperparams["SIGMA"],
-#     ).to(device)
+    model = HQS_PnP(
+        niter=hyperparams["niter"],
+        f1=hyperparams["f1"],
+        f2=hyperparams["f2"],
+        falpha=hyperparams["falpha"],
+        denoiser=denoiser,
+        SIGMA=hyperparams["SIGMA"],
+    ).to(device)
 
-#     model.eval()
-#     return model
+    model.eval()
+    return model

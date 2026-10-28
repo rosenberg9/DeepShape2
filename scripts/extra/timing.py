@@ -38,7 +38,8 @@ if __name__ == "__main__":
 
     log_time("Loaded config and selected device", t_start)
 
-    ckpt_path = MODEL_DIR + "vae_mha.pt"
+    ckpt_path = MODEL_DIR / "vae_mha.pt"
+    device = "cpu"
     deblender = VAE().to(device)
     deblender.load_state_dict(
         torch.load(ckpt_path, map_location=device)["best_weights"]
