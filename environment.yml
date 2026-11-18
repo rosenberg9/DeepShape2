@@ -1,8 +1,11 @@
-name: main
+name: galsim_hub
 channels:
-  - defaults
   - conda-forge
+  - defaults
 dependencies:
-  - python==3.12
-  - gfortran
-prefix: /home/tripathi/anaconda3/envs/main
+  - galsim
+  - python=3.11
+  - astropy
+  - matplotlib
+  - numpy=1.26
+prefix: /Users/isaacrosenberg/opt/anaconda3/envs/galsim_hub
