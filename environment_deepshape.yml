@@ -1,0 +1,11 @@
+name: deepshape
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - gfortran
+  - pip
+  - numpy[version='<2']
+  - cython
+prefix: /Users/isaacrosenberg/opt/anaconda3/envs/deepshape
